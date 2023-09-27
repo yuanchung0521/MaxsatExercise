@@ -1,0 +1,2 @@
+PMOS: Net1 A1 VDD A2 Net1 B Y C VDD 
+NMOS: Net5 A1 Net6 A2 VSS B Net5 C Y 
