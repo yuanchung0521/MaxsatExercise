@@ -136,7 +136,7 @@ with open(file_name) as f:
                 N_NUM.append(net_count[num])
 
 for i in range(len(net_count)):
-    net_count[i] += 1 # why?
+    net_count[i] += 1  # Q: why?
     
     
 class Vertex(object):
@@ -172,7 +172,7 @@ flow_table = []
 V = []                             #first index is z, second index is y, last index is x
 
 #x_col_cnt = (len(this_cell.n) + len(this_cell.p) ) * 3  #assume the number of nmos and pmos is equal
-x_col_cnt = int(cell_num_sel) * 3
+x_col_cnt = int(cell_num_sel) * 3 # this is #words, which is how many pin (include VDD & VSS), but why devided by 3 and multiply it back ?
 
 temp1 = []
 for j in range(2):
@@ -184,32 +184,34 @@ for j in range(2):
 #temp1.append([Vertex('super_outer_node', 0, 0, x_col_cnt)])
 temp1.append([Vertex('super_outer_node', 0, 2, 0)])
 V.append(temp1)
-
-for i in range(1, metal_num+1):
+# Now we have two row (y=0,1) of vertex on z=0, which is super inner node, and additionaly an outer super node on (x,y,z=0,2,0)
+# Q : why is the pin all on the bottom ? the distance doesn't matter?
+# Oh I know, is that because it will be connected to the inner pin, so the location doesn't matter? one for N and another for P.
+for i in range(1, metal_num+1): # m0 is the super inner node, so m1, m2, m3 is the metal we use
     temp1 = []
     #for j in range(7):
-    for j in range(track_num):
+    for j in range(track_num): # track_num is the total track num, which is 2 nmos, 2 empty, and 2 pmos => 6
         temp2 = []
         for k in range(x_col_cnt):
             v_type = ''
             if i == 1:
-                v_type = 'inner_pin'
+                v_type = 'inner_pin' # m1 is all inner pin
             elif i == 2:
-                v_type = 'grid'
+                v_type = 'grid' # m2 is for routing
             elif i == 3:
                 if j == 0 or j == track_num-1:
-                    v_type = 'outer_pin'      #outer node in M3
+                    v_type = 'outer_pin'      # outer node in M3
                 else:
-                    v_type = 'grid'
+                    v_type = 'grid'           # else are for routing grid
             elif i == 4:
-                v_type = 'grid'
+                v_type = 'grid'  # ???
                  
             v_temp = Vertex(v_type, i, j, k)
             temp2.append(v_temp)
         temp1.append(temp2)
     V.append(temp1)
     
-    
+# V[i] is for layer, V[][j] is the track, v[][][k] is the column (there is a vertex on v[i][j][k])
 for i in range(len(V)):
     for j in range(len(V[i])):
         for k in range(len(V[i][j])):
@@ -217,19 +219,19 @@ for i in range(len(V)):
             if i == 0:
                 temp = []
                 if V[i][j][k].v_type == 'super_inner_node':
-                    if j == 0:
+                    if j == 0: # nmos
                         for t in range(fin_num):
-                            temp.append(V[1][t][k])
-                    elif j == 1:
+                            temp.append(V[1][t][k]) # the lowest two track of vertex in the column as adj
+                    elif j == 1: # pmos
                         for t in range(fin_num):
-                            temp.append(V[1][t+fin_num+empty_track_num][k])
-                    V[i][j][k].adj_num += fin_num
+                            temp.append(V[1][t+fin_num+empty_track_num][k]) # the top two track of vertex in the column as adj
+                    V[i][j][k].adj_num += fin_num # two neighber (fin has two places to connect for one pin)
                 elif V[i][j][k].v_type == 'super_outer_node':
                     for i1 in range(1, len(V)):
                         #print(i1)
                         for j1 in range(len(V[i1])):
                             for k1 in range(len(V[i1][j1])):
-                                if V[i1][j1][k1].v_type == 'outer_pin':
+                                if V[i1][j1][k1].v_type == 'outer_pin': # connect all the outer_pin
                                     temp.append(V[i1][j1][k1])
                                     V[i][j][k].adj_num += 1
                 V[i][j][k].super_node = temp
@@ -247,7 +249,7 @@ for i in range(len(V)):
                 V[i][j][k].up = V[i+1][j][k]
                 V[i][j][k].adj_num += 1
                 if j < fin_num:
-                    V[i][j][k].super_node = V[0][0][k]
+                    V[i][j][k].super_node = V[0][0][k] # on the bottom will concat to nmos supernode
                     V[i][j][k].adj_num += 1
                     
                     '''if k%3==2 and k!=len(V[i][j])-1:
@@ -257,7 +259,7 @@ for i in range(len(V)):
                         V[i][j][k].left = V[i][j][k-1]
                         V[i][j][k].adj_num += 1'''
                     
-                elif j > fin_num + empty_track_num - 1:
+                elif j > fin_num + empty_track_num - 1: # on the top will concat to pmos supernode
                     V[i][j][k].super_node = V[0][1][k]
                     V[i][j][k].adj_num += 1
                     
@@ -267,8 +269,9 @@ for i in range(len(V)):
                     if k%3==0 and k !=0:
                         V[i][j][k].left = V[i][j][k-1]
                         V[i][j][k].adj_num += 1'''
+            # m1 can only have vertical connection
             elif i == 2:
-                if True:
+                if True: # ??? ok
                 #if j != 0 and j != track_num-1:
                     #if V[i][j][k].v_type == 'outer_pin':
                     #    V[i][j][k].super_node = V[0][2][0]
@@ -284,9 +287,10 @@ for i in range(len(V)):
                         V[i][j][k].adj_num += 1
                     V[i][j][k].down = V[i-1][j][k]
                     V[i][j][k].adj_num += 1
+            # m2 can only have horizontal connection
             elif i == 3:
                 if V[i][j][k].v_type == 'outer_pin':
-                    V[i][j][k].super_node = V[0][2][0]
+                    V[i][j][k].super_node = V[0][2][0] # connect to super outer node
                     V[i][j][k].adj_num += 1
                 if j != 0:
                     V[i][j][k].back = V[i][j-1][k]
@@ -320,8 +324,8 @@ for i in range(len(V)):
                     V[i][j][k].adj_num += 1
                 V[i][j][k].down = V[i-1][j][k]
                 V[i][j][k].adj_num += 1
-                
-                
+# now we've done the adj list initialization
+# Q : but why we need up down and so on ? why could't we simply get it with index ? the space is not important ?
 for i in range(len(V)):
     for j in range(len(V[i])):
         for k in range(len(V[i][j])):
@@ -346,7 +350,7 @@ for i in range(len(V)):
                     for h in range(len(V[i][j][k].super_node)):
                         V[i][j][k].adj.append(['super_node', V[i][j][k].super_node[h]])
                 else:
-                    V[i][j][k].adj.append(['super_node', V[i][j][k].super_node])
+                    V[i][j][k].adj.append(['super_node', V[i][j][k].super_node]) # empty super node ?
             
             if V[i][j][k].adj_num != len(V[i][j][k].adj):
                 print([i, j, k])
@@ -356,7 +360,7 @@ for i in range(len(V)):
 list_cnt = 1
 var_list = []
 
-
+# Same size as V but initial as -1
 
 E_list = []
 for i in range(len(V)):
@@ -384,28 +388,28 @@ for i in range(len(V)):
                 #print([i, j, k])
                 #print([i1, j1, k1])
                 for h1 in range(V[i1][j1][k1].adj_num):
-                    if V[i1][j1][k1].adj[h1][1] == V[i][j][k]:
+                    if V[i1][j1][k1].adj[h1][1] == V[i][j][k]:  # Q: why ? a's adj b shouldn't make a be b's adj? Oh is because we don't know the exact index of adj
                         if E_list[i][j][k][h] == -1:
                             if E_list[i1][j1][k1][h1] == -1:
                                 E_list[i][j][k][h] = E_count
-                                E_list[i1][j1][k1][h1] = E_count
+                                E_list[i1][j1][k1][h1] = E_count # both are -1 than make both be the e_count(index?)
                                 E_count += 1
                             else:
-                                E_list[i][j][k][h] = E_list[i1][j1][k1][h1]
+                                E_list[i][j][k][h] = E_list[i1][j1][k1][h1] # Q: what will cause this?
                         else:
                             if E_list[i1][j1][k1][h1] == -1:
-                                E_list[i1][j1][k1][h1] = E_list[i][j][k][h]
-                            else:
+                                E_list[i1][j1][k1][h1] = E_list[i][j][k][h] # same as above, what will cause this?
+                            else:  # no situation will go on above two after experiment
                                 if E_list[i1][j1][k1][h1] != E_list[i][j][k][h]:
                                     print("something wrong.....")
                                     
-
+# now E_count is the #edge
 FLOW = []
 for i in range(E_count):
     temp4 = []
-    for n in range(len(net_name)):
+    for n in range(len(net_name)):  # Q: why is it net_name? VDD and VSS is don't_care?
         temp0 = []
-        for m in range(net_count[n]-1):
+        for m in range(net_count[n]-1):  # Q: +1 on above and minus 1 here?
             temp0.append(list_cnt)
             list_cnt += 1
         temp4.append(temp0)
@@ -415,8 +419,9 @@ for i in range(E_count):
 for i in range(E_count):
     for n in range(len(net_name)):
         for m in range(net_count[n]-1):
-            var_list.append(FLOW[i][n][m])
+            var_list.append(FLOW[i][n][m])  # just for recording all the flow numbers
 
+# every vertex have #nets list, and the number store in VN is after FLOW
 VN = []
 
 for i in range(len(V)):
@@ -438,7 +443,7 @@ for i in range(len(V)):
             for n in range(len(net_name)):
                 var_list.append(VN[i][j][k][n])
     
-
+# after VN is EN, which len is len(#edges * #nets)
 
 EN = []
 
@@ -453,7 +458,7 @@ for i in range(E_count):
     for n in range(len(net_name)):
         var_list.append(EN[i][n])
 
-
+# after EN is M, which is the metal of each edge
     
 M = []
 
@@ -463,13 +468,14 @@ for i in range(E_count):
 
 
 #for i in range(E_count):
-    var_list.append(M[i])
+    var_list.append(M[i])  # should be move up
    #obj_list.append(-1)
 
 
 obj_list_1 = []
 obj_list_4 = []
 
+# Q: what is this for ? times -1 cam do ?
 for i in range(len(V)):
     for j in range(len(V[i])):
         for k in range(len(V[i][j])):
@@ -513,7 +519,7 @@ wcnf = WCNF()
 
 var_list_inv = []
 for i in range(len(var_list)):
-    wcnf.append([(-1)*var_list[i]], weight = 1)
+    wcnf.append([(-1)*var_list[i]], weight = 1)  # Q: initial as false?
     #var_list_inv.append((-1)*var_list[i])
 #wcnf.append(obj_list_1, weight=1)
 #wcnf.append(obj_list_4, weight=4)

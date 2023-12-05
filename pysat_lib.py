@@ -1,4 +1,5 @@
 import pysat
+import time
 
 #!/usr/bin/env python
 # coding: utf-8
@@ -9,7 +10,7 @@ cell_num_sel = 4
 cell_count_number = 2
 is_opt = True
 bool_flag = True
-import time
+
 
 metal_num = 3
 
